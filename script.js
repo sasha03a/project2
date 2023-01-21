@@ -1,157 +1,113 @@
-const form = document.querySelector('#todo-form');
-// console.log(form);
-
-const taskInput = document.querySelector('#task-input')
-// console.log(taskInput);
-
-const tasksList = document.querySelector('.tasks-list')
+const slider = document.querySelector('.slider-container')
+const slides = Array.from(document.querySelectorAll('.slide'))
 
 
-
-form.addEventListener('submit', addTask)
-
-
-tasksList.addEventListener('click', deleteTask)
-tasksList.addEventListener('click', doneTask)
-
-if (localStorage.getItem('tasks')) {
-    tasksList.innerHTML = localStorage.getItem('tasks')
-}
-
-function addTask(e) {
-
-    e.preventDefault();
-    // console.log(taskInput.value);
-    const inputValue = taskInput.value;
-    const taskItem = `
-    <li class="list-group-item mb-1 d-flex align-items-center justify-content-between shadow-sm">
-                <div class="text list-group-item__inner w-75 me-2 ps-2">${inputValue}</div>
-                <div class="list-group-item__buttons d-flex flex-nowrap">
-                    <button type="submit" class="btn btn-outline-success me-2" data-action="done">
-                        <i class="bi bi-check-square"></i>
-                    </button>
-
-                    <button class="edit btn btn-outline-primary me-2" type="button">
-                        Edit
-                    </button>
-
-                    <button type="button" class="btn btn-outline-danger" data-action="delete">
-                        <i class="bi bi-trash3-fill"></i>
-                    </button>
-                </div>
-
-            </li>`
-
-    //  tasksList.innerHTML += taskItem
-
-    tasksList.insertAdjacentHTML('beforeend', taskItem)
-    taskInput.value = '';
-    ////робить пусті таски
-    taskInput.focus();
-    saveHTMLStorage();
-}
+let isDragging = false;
+let startPosition = 0;
+let animationId = 0
+let currentIndex = 0;
+let prevTranslate = 0;
+let currentTranslate = 0;
 
 
 
 
 
-function deleteTask(e) {
+slides.forEach((slide, index) => {
+    const slideImg = slide.querySelector('.slide__img')
 
-    // console.log(e.target);
 
-    if (e.target.dataset.action === 'delete') {
-        const task = e.target.closest('.list-group-item');
-        task.remove()
-        
 
+    slideImg.addEventListener('dragstart', function (e) {
+        e.preventDefault()
+    })
+
+    slide.addEventListener('touchstart', touchStart(index));
+    slide.addEventListener('touchend', touchEnd);
+    slide.addEventListener('touchmove', touchMove);
+
+
+
+    slide.addEventListener('mousedown', touchStart(index));
+    slide.addEventListener('mouseup', touchEnd);
+    slide.addEventListener('mousemove', touchMove);
+    slide.addEventListener('mouseleave', touchEnd);
+
+
+})
+
+
+
+
+
+
+function touchStart(index) {
+    return function (e) {
+
+        isDragging = true;
+        currentIndex = index;
+        startPosition = getPositionX(e);
+
+        animationId = requestAnimationFrame(animation);
+        slider.classList.add('grabbing')
     }
-    saveHTMLStorage()
+
 }
 
-function doneTask(e) {
+function touchEnd() {
+    isDragging = false;
+    cancelAnimationFrame(animationId)
+    slider.classList.remove('grabbing')
 
+    let moved = currentTranslate - prevTranslate;
 
-    if (e.target.dataset.action === 'done') {
-        const task = e.target.closest('.list-group-item');
-        
-        task.classList.toggle('done')
-        // task.style.color = 'gray';
-        // task.style.textDecoration = 'line-through'
+    if (moved < -120 && currentIndex < slides.length - 1) {
+        currentIndex += 1
     }
-    saveHTMLStorage()
-}
 
-
-
-
-
-function saveHTMLStorage() {
-    localStorage.setItem('tasks', tasksList.innerHTML)
-}
-
-function gateHTMLStorage() {
-    // console.log(localStorage.getItem('tasks'))
-}
-saveHTMLStorage()
-gateHTMLStorage()
-
-
-
-
-
-
-let edit = document.querySelectorAll('.edit');
-let text = document.querySelectorAll('.text');
-
-for( let i = 0; i < edit.length; i++ ){
-  let editMode = false;
-  
-  edit[i].addEventListener('click', function(){
-    if( editMode ) {
-      this.textContent = 'Edit';
-      text[i].removeAttribute('contentEditable');
-    } else {
-      this.textContent = "Ok";      
-      text[i].setAttribute('contentEditable', true);
-      text[i].focus();
+    if (moved > 120 && currentIndex > 0) {
+        currentIndex -= 1
     }
-    
-    editMode = !editMode;
-  })
-}
-// function back(e) {
-//     const btnDelete = e.target.closest('.btn-outline-danger')
-//     if (btnDelete.type == 'mouseover') {
 
-//         task.target.style.background = 'pink';
-//         console.log('ok');
-//     }
-//     if (btnDelete.type == 'mouseout') {
-//         task.target.style.background = 'blue'
-//         console.log('hhh');
-//     }
+    setPositionIndex()
+}
+
+function touchMove(e) {
+    if (isDragging) {
+        let currentPosition = getPositionX(e)
+        currentTranslate = prevTranslate + currentPosition - startPosition;
+    }
+
+}
+
+
+function getPositionX(e) {
+    return e.type.includes('mouse') ? e.pageX : e.touches[0].clientX
+}
+
+// window.oncontextmenu = function (e) {
+//     e.preventDefault();
+//     e.stopPropagation();
+//     return false
 // }
 
 
-// const btnDelete = document.querySelector('.btn-outline-danger')
+function animation() {
+    setSliderPosition()
+    if (isDragging) {
+        requestAnimationFrame(animation)
+    }
+}
 
-// // function back() {
-// //     task.style.background = e.target.style.background
-// // }
+function setSliderPosition() {
+    slider.style.transform = `translateX(${currentTranslate}px)`
+}
 
-// // task.addEventListener('mouseover', function (e) {
 
-// //     e.target.style.background = 'black'
-// //     back()
-// //     console.log('ok');
-// // })
+function setPositionIndex() {
+    currentTranslate = currentIndex * -window.innerWidth
+    prevTranslate = currentTranslate;
+    setSliderPosition()
+}
 
-// task.addEventListener( function l(e) {
 
-// if (mouseover === 'delete') {
-    
-// }
-//     e.target.style.background = 'black'
-//     // back()
-//     console.log('ok');
-// })
